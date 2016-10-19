@@ -11,16 +11,19 @@ int val = 0;           // store the dig read of sensor
 const long animLength = 10000;  // how long the animation runs for (10 seconds)
 long animMillis = 0;     // counter
 
-int ledState = LOW;    // initial state of led pin
-const long ledInterval = 100;  // interval of led (going to millis())
-long ledMillis = 0;      // counter for led (also going to millis())
-int bzzState = LOW;    // etc...
-const long bzzInterval = 500;
-long bzzMillis = 0;
-int mtrState = LOW;
-const long mtrInterval = 250;
-long mtrMillis = 0;
+const long ledInterval = 100;  // duty cycle of led (.1 second)
+long ledMillis = 0;            // holder for millis at trigger
+int ledState = LOW;            // initial state of led pin
 
+const long bzzInterval = 500;  // .5 seconds
+long bzzMillis = 0;
+int bzzState = LOW;
+
+const long mtrInterval = 250;  // .25 seconds
+long mtrMillis = 0;
+int mtrState = LOW;
+
+// counter to stagger the motor animation
 int mtrCounter = 250;
 int mtrAnim = HIGH;
 
@@ -34,7 +37,7 @@ void setup()
   pinMode(inputPin,INPUT);
 
   // so we can trace out our values
-  Serial.begin(9600);
+  //Serial.begin(9600);
 }
 
 void loop()
@@ -60,13 +63,13 @@ void loop()
   {
     // this is the state where animation has not been running but PIR has sensed something
     animation = HIGH;        // set animation flag to running
-    animMillis = millis();   // set the counter for the animation
+    animMillis = millis();   // set the current millis for the animation
+    ledMillis = millis();    // set the current millis for the led, etc...
+    bzzMillis = millis();
+    mtrMillis = millis();
     ledState = HIGH;         // turn on the flag for the led, etc...
     bzzState = HIGH;
     mtrState = HIGH;
-    ledMillis = millis();    // set the counter for the led, etc...
-    bzzMillis = millis();
-    mtrMillis = millis();
   }
   else if(PIRstate == HIGH && animation == HIGH)
   {
@@ -86,13 +89,13 @@ void loop()
 
   if(animation == HIGH)
   {
-    // do animation
+    // do calculations of states
     doLEDAnimation();
     doBzzAnimation();
     doMtrAnimation();
 
     unsigned long currentMillis = millis();
-    if(currentMillis - animMillis > animLength) // if the counter has run out
+    if(currentMillis - animMillis > animLength) // if the calculated period is greater than the set length
     {
       animation = LOW; // set the animation flag to low
     }
@@ -106,7 +109,7 @@ void loop()
     mtrState = LOW;
   }
 
-
+  // write the states to the pins
   digitalWrite(ledPin,ledState);
   digitalWrite(bzzPin,bzzState);
   digitalWrite(mtrPin,mtrState);
@@ -115,13 +118,11 @@ void loop()
 
 void doLEDAnimation()
 {
-  // if the led counter has run out
-
   unsigned long currentLedMillis = millis();
-  if(currentLedMillis - ledMillis > ledInterval)
+  if(currentLedMillis - ledMillis > ledInterval)  // if the elapsed period is greater than the set period
   {
     ledState = !ledState;   // set the state of the led to its opposite
-    ledMillis = millis(); // reset the counter
+    ledMillis = millis();   // reset to the current millis
   }
 }
 
@@ -137,6 +138,7 @@ void doBzzAnimation()
 
 void doMtrAnimation()
 {
+  // stagger the animation of the motor with a counter and a flag
   if(mtrCounter > 0 && mtrAnim == HIGH)
   {
     unsigned long currentMtrMillis = millis();
@@ -146,14 +148,13 @@ void doMtrAnimation()
       mtrMillis = millis();
     }
   }
+
   if(mtrCounter == 0)
   {
-    mtrCounter = 250;
-    mtrState = LOW;
     mtrAnim = !mtrAnim;
+    mtrState = LOW;
+    mtrCounter = 250;
   }
-Serial.print(mtrCounter);
-Serial.print("::");
-Serial.println(mtrAnim);
+
   mtrCounter--;
 }
