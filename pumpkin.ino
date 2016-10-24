@@ -3,6 +3,7 @@ const int ledPin = 13;  // led
 const int bzzPin = 12;  // buzzer
 const int mtrPin = 11;  // motor
 const int dbgPin = 10;  // indicator that the PIR is high
+const int flmPin = 9;   // glow of pumpkin
 const int inputPin = 2; // input of PIR
 
 int PIRstate = LOW;    // state of sensor
@@ -23,6 +24,11 @@ const long mtrInterval = 250;  // .25 seconds
 long mtrMillis = 0;
 int mtrState = LOW;
 
+const long flmIntervalHigh = 1000; // 1 second on
+const long flmIntervalLow = 250;   // .25 seconds off
+long flmMillis = 0;
+int flmState = LOW;
+
 // counter to stagger the motor animation
 int mtrCounter = 250;
 int mtrAnim = HIGH;
@@ -34,6 +40,7 @@ void setup()
   pinMode(bzzPin,OUTPUT);
   pinMode(mtrPin,OUTPUT);
   pinMode(dbgPin,OUTPUT);
+  pinMode(flmPin,OUTPUT);
   pinMode(inputPin,INPUT);
 
   // so we can trace out our values
@@ -67,9 +74,11 @@ void loop()
     ledMillis = millis();    // set the current millis for the led, etc...
     bzzMillis = millis();
     mtrMillis = millis();
+    flmMillis = millis();
     ledState = HIGH;         // turn on the flag for the led, etc...
     bzzState = HIGH;
     mtrState = HIGH;
+    flmState = HIGH;
   }
   else if(PIRstate == HIGH && animation == HIGH)
   {
@@ -93,6 +102,7 @@ void loop()
     doLEDAnimation();
     doBzzAnimation();
     doMtrAnimation();
+    doFlmAnimation();
 
     unsigned long currentMillis = millis();
     if(currentMillis - animMillis > animLength) // if the calculated period is greater than the set length
@@ -107,12 +117,14 @@ void loop()
     ledState = LOW;
     bzzState = LOW;
     mtrState = LOW;
+    flmState = LOW;
   }
 
   // write the states to the pins
   digitalWrite(ledPin,ledState);
   digitalWrite(bzzPin,bzzState);
   digitalWrite(mtrPin,mtrState);
+  digitalWrite(flmPin,flmState);
 
 }
 
@@ -157,4 +169,26 @@ void doMtrAnimation()
   }
 
   mtrCounter--;
+}
+
+void doFlmAnimation()
+{
+  // we want the LED to have a long on time with a short flash off
+  unsigned long currentFlmMillis = millis();
+  if(flmState == HIGH)
+  {
+    if(currentFlmMillis - flmMillis > flmIntervalHigh)
+    {
+      flmState = LOW;
+      flmMillis = millis();
+    }
+  }
+  else
+  {
+    if(currentFlmMillis - flmMillis > flmIntervalLow)
+    {
+      flmState = HIGH;
+      flmMillis = millis();
+    }
+  }
 }
